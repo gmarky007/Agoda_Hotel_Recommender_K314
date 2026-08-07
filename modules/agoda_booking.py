@@ -356,7 +356,12 @@ def render():
                 key="model_engine_segmented",
                 label_visibility="collapsed"
             )
-            st.session_state.selected_model_mode_key = sel_model_str or "🏆 2-Stage Hybrid (Chính thức)"
+            new_mode_key = sel_model_str or "🏆 2-Stage Hybrid (Chính thức)"
+            if new_mode_key != st.session_state.selected_model_mode_key:
+                st.session_state.selected_model_mode_key = new_mode_key
+                st.session_state.has_searched = False
+                st.rerun()
+
             active_model_mode = model_mode_opts.get(st.session_state.selected_model_mode_key, "hybrid")
 
         filtered_df = df_hotels.copy()
