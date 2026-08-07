@@ -490,9 +490,9 @@ def render():
                     if desc_short and len(desc_short) > 5:
                         st.markdown(f"<div style='font-size:0.8rem; color:var(--text-color); opacity:0.85; margin-bottom:6px; line-height:1.4;'>Mô tả: {desc_short[:95]}...</div>", unsafe_allow_html=True)
 
-                    c_btn1, c_btn2 = st.columns(2)
+                    c_btn1, c_btn2, c_btn3 = st.columns(3)
                     with c_btn1:
-                        with st.popover(f"💬 {n_reviews} nhận xét ▾", use_container_width=True):
+                        with st.popover(f"💬 {n_reviews} review ▾", use_container_width=True):
                             st.markdown(f"#### 💬 Nhận xét thực tế ({n_reviews})")
                             if h_comments.empty:
                                 st.caption("Chưa có bình luận chi tiết.")
@@ -516,11 +516,33 @@ def render():
                                     </div>
                                     """, unsafe_allow_html=True)
                     with c_btn2:
-                        with st.popover("📖 Xem chi tiết ▾", use_container_width=True):
+                        with st.popover("📖 Chi tiết ▾", use_container_width=True):
                             st.markdown(f"#### {row['Clean_Name']}")
                             st.markdown(f"📍 **Địa chỉ:** {row['Clean_Addr']}")
                             st.markdown(f"⭐ **Hạng sao:** {row['Star_Badge']} ({row['Star_Num']} sao)")
                             st.markdown(f"📝 **Mô tả chi tiết:**\n\n{desc_full}")
+                    with c_btn3:
+                        with st.popover("🧮 Điểm AI ▾", use_container_width=True):
+                            svd_r = row.get('SVD_Rating', 8.2)
+                            svd_n = int(round(float(row.get('SVD_Norm', 0.5)) * 100))
+                            asp_s = int(round(float(row.get('Aspect_Match_Score', 0.8)) * 100))
+                            cos_s = int(round(float(row.get('Cosine_Score', 0.0)) * 100))
+                            str_s = int(round(float(row.get('Star_Match_Score', 1.0)) * 100))
+                            
+                            st.markdown(f"#### 🧮 Phân Tích Điểm Đề Xuất Hybrid")
+                            st.markdown(f"**Tổng điểm Phù Hợp: {match_pct}%**")
+                            
+                            st.markdown(f"👥 **Collaborative SVD (Đồng sở thích):** **{svd_r:.1f} / 10**")
+                            st.progress(svd_n / 100.0, text=f"SVD Norm: {svd_n}%")
+                            
+                            st.markdown(f"🎯 **Aspect Match (Gu quốc tịch & khía cạnh):**")
+                            st.progress(asp_s / 100.0, text=f"Aspect Score: {asp_s}%")
+                            
+                            st.markdown(f"📝 **Cosine Text Similarity (Mô tả NLP):**")
+                            st.progress(cos_s / 100.0, text=f"Cosine Score: {cos_s}%")
+                            
+                            st.markdown(f"⭐ **Star & Location Match (Hạng sao & vị trí):**")
+                            st.progress(str_s / 100.0, text=f"Star Match: {str_s}%")
 
                     # Row 4: Dynamic Badges
                     st.markdown(get_dynamic_badges(row, row['Star_Num']), unsafe_allow_html=True)
