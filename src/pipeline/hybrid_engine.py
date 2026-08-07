@@ -184,10 +184,10 @@ def compute_text_relevance(search_query, hotel_name, hotel_desc):
 
 
 def calculate_hybrid_scores(df_hotels, df_aspects, svd_model, reviewer_profile, 
-                            search_query="", cosine_sim=None, alpha=0.35):
+                            search_query="", cosine_sim=None, alpha=0.35, model_mode="hybrid"):
     """Calculate 4-factor hybrid recommendation scores.
     
-    Formula: S = 0.35*Cosine + 0.35*SVD + 0.15*Aspect + 0.15*Star
+    Formula: S = w_cos*Cosine + w_svd*SVD + w_asp*Aspect + w_star*Star
     
     Args:
         df_hotels: DataFrame of hotels to score
@@ -196,6 +196,7 @@ def calculate_hybrid_scores(df_hotels, df_aspects, svd_model, reviewer_profile,
         reviewer_profile: Dict with reviewer_id, aspect_weights, target_star
         search_query: User's search text for keyword relevance
         cosine_sim: Pre-computed cosine similarity matrix (740x740) — reserved for future use
+        model_mode: 'hybrid' (default), 'content' (only NLP/Aspect), 'collaborative' (only SVD)
     """
     if df_hotels.empty:
         return df_hotels
@@ -286,12 +287,21 @@ def calculate_hybrid_scores(df_hotels, df_aspects, svd_model, reviewer_profile,
     res_df['Star_Match_Score'] = star_match_scores
 
     # 5. Dynamic Weight Assignment
-    if is_pure_star_query:
-        # Pure star query -> Weight shifted heavily to Aspect (50%) and SVD (30%)
-        w_cos, w_svd, w_asp, w_star = 0.00, 0.30, 0.50, 0.20
+    if model_mode == "content":
+        # Pure Content-Based (NLP + Aspect + Star, Disable SVD)
+        if is_pure_star_query:
+            w_cos, w_svd, w_asp, w_star = 0.00, 0.00, 0.70, 0.30
+        else:
+            w_cos, w_svd, w_asp, w_star = 0.40, 0.00, 0.30, 0.30
+    elif model_mode == "collaborative":
+        # Pure Collaborative Filtering (Surprise SVD Only)
+        w_cos, w_svd, w_asp, w_star = 0.00, 1.00, 0.00, 0.00
     else:
-        # Descriptive query or empty -> Standard hybrid weights
-        w_cos, w_svd, w_asp, w_star = 0.25, 0.15, 0.30, 0.30
+        # 2-Stage Hybrid Engine (Default)
+        if is_pure_star_query:
+            w_cos, w_svd, w_asp, w_star = 0.00, 0.30, 0.50, 0.20
+        else:
+            w_cos, w_svd, w_asp, w_star = 0.25, 0.15, 0.30, 0.30
 
     res_df['Hybrid_Score'] = (
         w_cos * res_df['Cosine_Score'] +
