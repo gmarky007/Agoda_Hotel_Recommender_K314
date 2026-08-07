@@ -83,10 +83,25 @@ AMENITY_MAP = {
     'trung tâm': r'trung tâm|center|central'
 }
 
+LOCATION_MAP = {
+    'lộc thọ': r'lộc thọ|loc tho',
+    'vĩnh phước': r'vĩnh phước|vinh phuoc',
+    'vĩnh hải': r'vĩnh hải|vinh hai',
+    'tân lập': r'tân lập|tan lap',
+    'vĩnh nguyên': r'vĩnh nguyên|vinh nguyen',
+    'phước hải': r'phước hải|phuoc hai',
+    'cam ranh': r'cam ranh',
+    'bãi dài': r'bãi dài|cam lâm|cam lam',
+    'trần phú': r'trần phú|tran phu',
+    'phạm văn đồng': r'phạm văn đồng|pham van dong',
+    'hùng vương': r'hùng vương|hung vuong',
+    'nguyễn thiện thuật': r'nguyễn thiện thuật|nguyen thien thuat'
+}
+
 def parse_nlp_query_constraints(df, query):
     """
     Stage 1: Hard Constraint Filter (AND logic)
-    Extracts star ratings, property types, and amenities from natural language query
+    Extracts star ratings, property types, locations, and amenities from natural language query
     and strictly filters the dataframe.
     """
     if not query or not query.strip():
@@ -101,13 +116,19 @@ def parse_nlp_query_constraints(df, query):
         # Tightened star range: e.g. for 3-star query, matches 2.8 to 3.4; for 5-star, 4.8 to 5.0
         res = res[(res['Star_Num'] >= q_star - 0.2) & (res['Star_Num'] <= q_star + 0.4)]
         
-    # 2. Property Types (OR if multiple specified, e.g. villa hoặc homestay)
+    # 2. Location / District Constraint (OR if multiple specified, e.g. Trần Phú hoặc Lộc Thọ)
+    matched_locations = [pat for k, pat in LOCATION_MAP.items() if k in q_clean]
+    if matched_locations:
+        combined_loc_pat = '|'.join(set(matched_locations))
+        res = res[res['Hotel_Address'].str.contains(combined_loc_pat, case=False, na=False, regex=True) | res['Hotel_Name'].str.contains(combined_loc_pat, case=False, na=False, regex=True)]
+
+    # 3. Property Types (OR if multiple specified, e.g. villa hoặc homestay)
     matched_types = [pat for k, pat in PROPERTY_TYPE_MAP.items() if k in q_clean]
     if matched_types:
         combined_type_pat = '|'.join(set(matched_types))
         res = res[res['Hotel_Description'].str.contains(combined_type_pat, case=False, na=False, regex=True) | res['Hotel_Name'].str.contains(combined_type_pat, case=False, na=False, regex=True)]
         
-    # 3. Mandatory Amenities (STRICT AND LOGIC)
+    # 4. Mandatory Amenities (STRICT AND LOGIC)
     matched_amenities = []
     for k, pat in AMENITY_MAP.items():
         if k in q_clean and pat not in matched_amenities:
