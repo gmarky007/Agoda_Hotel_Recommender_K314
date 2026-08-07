@@ -497,13 +497,15 @@ def render():
             st.info(f"ℹ️ **Phát hiện truy vấn Tiếng Anh/Hàn**: Đã tự động đổi sang hồ sơ du khách **{active_profile.get('flag', '🇺🇸')} {detected_nat}** để tối ưu hóa trọng số xếp hạng.")
 
     # Cold-Start Warning banner when selecting Collaborative Filtering with descriptive text query
-    if active_model_mode == "collaborative" and search_query.strip():
-        st.warning("⚠️ **CẢNH BÁO COLD-START WARNING**: Thuật toán Lọc cộng tác (Surprise SVD) không có khả năng hiểu ngữ nghĩa văn bản hay lọc từ khóa mô tả. Điểm Cosine Text Similarity đã bị tắt ($0\%$). Hệ thống đang xếp hạng thuần theo lịch sử tương tác chung. Bạn nên chuyển sang **2-Stage Hybrid** hoặc **Content-Based** để có kết quả chính xác hơn.")
-    elif active_model_mode == "content":
-        st.info("ℹ️ **CHẾ ĐỘ CONTENT-BASED FILTERING**: Đã tắt hoàn toàn thuật toán Lọc cộng tác (SVD = 0%). Kết quả xếp hạng dựa trên 100% điểm khớp từ khóa mô tả NLP, khía cạnh dịch vụ và hạng sao.")
+    # Cold-Start Warning banner when selecting Collaborative Filtering with descriptive text query
+    if active_model_mode == "collaborative":
+        if search_query.strip():
+            st.warning("⚠️ **CẢNH BÁO COLD-START WARNING**: Thuật toán Lọc cộng tác (Surprise SVD) không có khả năng hiểu ngữ nghĩa văn bản hay lọc từ khóa mô tả. Điểm Cosine Text Similarity đã bị tắt ($0\%$) và Giai đoạn 1 Lọc cứng NLP đã bị bỏ qua. Hệ thống đang xếp hạng thuần theo lịch sử tương tác chung. Bạn nên chuyển sang **2-Stage Hybrid** hoặc **Content-Based** để có kết quả chính xác hơn.")
+        else:
+            st.warning("⚠️ **CHẾ ĐỘ COLLABORATIVE FILTERING**: Đã tắt hoàn toàn các bộ lọc NLP/Aspect. Kết quả dựa trên 100% điểm dự đoán SVD.")
 
-    # [STAGE 1] Hard Constraint Filter for Mode 1
-    if st.session_state.search_mode == "mode1" and search_query.strip():
+    # [STAGE 1] Hard Constraint Filter for Mode 1 (Bypassed for pure Collaborative SVD mode)
+    if st.session_state.search_mode == "mode1" and search_query.strip() and active_model_mode != "collaborative":
         filtered_df = parse_nlp_query_constraints(filtered_df, search_query)
 
     # [STAGE 2] Hybrid Soft Ranking
