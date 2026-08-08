@@ -61,48 +61,38 @@ def load_partner_data():
 
 @st.cache_data(show_spinner=False)
 def fast_get_hotel_keywords(df_sub_comments):
-    """Fast keyword extraction ONLY for the selected hotel subset to prevent freezing."""
+    """Fast keyword extraction using phrase matching to prevent split syllables and stopwords."""
     if df_sub_comments.empty or 'Body' not in df_sub_comments.columns:
         return pd.DataFrame(columns=['Từ Khóa', 'Lượt Nhắc'])
 
-    SYNONYM_MAP = {
-        'tuyệt_vời': 'tuyệt vời', 'tuyệt_hảo': 'tuyệt vời', 'xuất_sắc': 'tuyệt vời', 'quá_tuyệt': 'tuyệt vời', 'rất_tuyệt': 'tuyệt vời',
-        'nhân_viên': 'nhân viên nhiệt tình', 'thân_thiện': 'thân thiện', 'nhiệt_tình': 'nhiệt tình', 'lễ_tân': 'lễ tân chu đáo',
-        'phục_vụ': 'phục vụ tốt', 'nhân_viên_thân_thiện': 'nhân viên thân thiện', 'phục_vụ_tốt': 'phục vụ tốt',
-        'sạch_sẽ': 'sạch sẽ', 'vệ_sinh': 'sạch sẽ', 'gọn_gàng': 'sạch sẽ', 'sạch': 'sạch sẽ', 'rất_sạch': 'sạch sẽ',
-        'vị_trí': 'vị trí thuận tiện', 'gần_biển': 'gần biển', 'trung_tâm': 'ở trung tâm', 'vị_trí_tốt': 'vị trí đẹp', 'vị_trí_đẹp': 'vị trí đẹp', 'thuận_tiện': 'vị trí đẹp',
-        'ăn_sáng': 'bữa sáng ngon', 'buffet': 'bữa sáng ngon', 'bữa_sáng': 'bữa sáng ngon', 'đồ_ăn': 'đồ ăn ngon',
-        'hồ_bơi': 'hồ bơi đẹp', 'bể_bơi': 'hồ bơi đẹp', 'vô_cực': 'hồ bơi vô cực',
-        'đáng_tiền': 'giá cả hợp lý', 'giá_tốt': 'giá cả hợp lý', 'giá_cả': 'giá cả hợp lý', 'hợp_lý': 'giá cả hợp lý',
-        'view_đẹp': 'view biển đẹp', 'hướng_biển': 'view biển đẹp', 'ngắm_biển': 'view biển đẹp',
-        'tốt': 'chất lượng tốt', 'rất_tốt': 'chất lượng tốt',
-        'đẹp': 'thiết kế đẹp', 'sang_trọng': 'sang trọng', 'hiện_đại': 'hiện đại'
+    text = " ".join(df_sub_comments['Title'].fillna('').astype(str) + " " + df_sub_comments['Body'].fillna('').astype(str)).lower()
+    text = " " + re.sub(r'[^\w\s]', ' ', text) + " "
+
+    TARGETS = {
+        'Tuyệt vời': [' tuyệt vời ', ' tuyệt hảo ', ' xuất sắc ', ' quá tuyệt ', ' great ', ' awesome ', ' excellent ', ' amazing ', ' wonderful ', ' perfect ', ' tuyệt '],
+        'Nhân viên nhiệt tình': [' nhân viên ', ' staff ', ' thân thiện ', ' friendly ', ' nhiệt tình ', ' lễ tân ', ' chu đáo ', ' helpful ', ' phục vụ '],
+        'Sạch sẽ': [' sạch sẽ ', ' sạch ', ' clean ', ' vệ sinh ', ' gọn gàng '],
+        'Vị trí thuận tiện': [' vị trí ', ' location ', ' trung tâm ', ' gần biển ', ' convenient ', ' thuận tiện '],
+        'Bữa sáng ngon': [' ăn sáng ', ' bữa sáng ', ' breakfast ', ' buffet ', ' đồ ăn ', ' food ', ' delicious '],
+        'Hồ bơi đẹp': [' hồ bơi ', ' bể bơi ', ' pool '],
+        'Giá cả hợp lý': [' đáng tiền ', ' giá tốt ', ' giá cả ', ' hợp lý ', ' value ', ' giá rẻ ', ' rẻ '],
+        'View đẹp': [' view ', ' hướng biển ', ' ngắm biển ', ' phong cảnh '],
+        'Chất lượng tốt': [' chất lượng ', ' tốt ', ' good ', ' nice ', ' ok ', ' ổn '],
+        'Thiết kế đẹp': [' thiết kế ', ' sang trọng ', ' hiện đại ', ' beautiful ', ' không gian '],
+        'Thoải mái & Yên tĩnh': [' thoải mái ', ' comfortable ', ' relax ', ' yên tĩnh ', ' quiet '],
+        'Tiện nghi đầy đủ': [' tiện nghi ', ' facilities ', ' đầy đủ ']
     }
 
-    EXCLUDE_WORDS = {
-        'khách sạn', 'phòng', 'chỗ ở', 'nơi ở', 'căn hộ', 'khách', 'sạn', 'nha trang',
-        'trải nghiệm', 'ngày', 'đêm', 'hotel', 'mình', 'tôi', 'bạn', 'anh chị'
-    }
+    counts = {}
+    for key, words in TARGETS.items():
+        c = sum(text.count(w) for w in words)
+        if c > 0:
+            counts[key] = c
 
-    text_corpus = " ".join(df_sub_comments['Title'].fillna('').astype(str) + " " + df_sub_comments['Body'].fillna('').astype(str)).lower()
-    text_corpus = re.sub(r'[^\w\s]', ' ', text_corpus)
-    tokens = re.findall(r'\b[a-zàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]{3,}\b', text_corpus)
-
-    mapped = []
-    for t in tokens:
-        if t in SYNONYM_MAP:
-            k = SYNONYM_MAP[t]
-            if k not in EXCLUDE_WORDS:
-                mapped.append(k)
-        elif len(t) > 3 and not t.isdigit():
-            clean_t = t.replace('_', ' ')
-            if clean_t not in EXCLUDE_WORDS:
-                mapped.append(clean_t)
-
-    if mapped:
-        counts = pd.Series(mapped).value_counts().head(8).reset_index()
-        counts.columns = ['Từ Khóa', 'Lượt Nhắc']
-        return counts
+    if counts:
+        df_counts = pd.DataFrame(list(counts.items()), columns=['Từ Khóa', 'Lượt Nhắc'])
+        return df_counts.sort_values(by='Lượt Nhắc', ascending=False).head(8)
+    
     return pd.DataFrame(columns=['Từ Khóa', 'Lượt Nhắc'])
 
 def get_star_num(rank_str, desc_str=''):

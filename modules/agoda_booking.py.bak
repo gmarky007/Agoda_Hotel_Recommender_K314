@@ -163,16 +163,14 @@ def load_booking_data():
 def get_dynamic_badges(row, star_val):
     desc = str(row.get('Hotel_Description', '')).lower()
     badges = []
-    if any(w in desc for w in ['hồ bơi', 'bể bơi', 'pool']):
+    if star_val >= 3.0 and any(w in desc for w in ['hồ bơi', 'bể bơi', 'pool']):
         badges.append("<span style='background:rgba(251,146,60,0.15); color:#fb923c; padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:600;'>🏊 Hồ bơi</span>")
-    if any(w in desc for w in ['biển', 'bãi biển', 'beach', 'ocean']):
+    if any(w in desc for w in ['biển', 'bãi biển', 'beach']):
         badges.append("<span style='background:rgba(168,85,247,0.15); color:#a855f7; padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:600;'>🏖️ Gần biển</span>")
     if star_val >= 4.0 or any(w in desc for w in ['sáng', 'buffet', 'breakfast']):
         badges.append("<span style='background:rgba(56,189,248,0.15); color:#38bdf8; padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:600;'>🍳 Bữa sáng</span>")
-    if any(w in desc for w in ['spa', 'massage']):
+    if star_val >= 4.0 and any(w in desc for w in ['spa', 'massage']):
         badges.append("<span style='background:rgba(244,114,182,0.15); color:#f472b6; padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:600;'>💆 Spa</span>")
-    if any(w in desc for w in ['villa', 'biệt thự']):
-        badges.append("<span style='background:rgba(236,72,153,0.15); color:#ec4899; padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:600;'>🏡 Villa</span>")
     if star_val < 3.0:
         badges.append("<span style='background:rgba(74,222,128,0.15); color:#4ade80; padding:3px 10px; border-radius:12px; font-size:0.75rem; font-weight:600;'>⚡ Giá tốt</span>")
     return " ".join(badges)
@@ -418,8 +416,7 @@ def render():
     if is_logged_in:
         active_profile = _get_active_profile(real_personas)
     else:
-        active_profile = NATIONALITY_PROFILES.get(st.session_state.get('selected_persona_key', 'Việt Nam'), NATIONALITY_PROFILES["Việt Nam"]).copy()
-        active_profile['reviewer_id'] = None
+        active_profile = NATIONALITY_PROFILES.get(st.session_state.get('selected_persona_key', 'Việt Nam'), NATIONALITY_PROFILES["Việt Nam"])
         detected_nat = st.session_state.get('detected_nat_lang')
         if detected_nat and detected_nat == st.session_state.selected_persona_key:
             st.info(f"ℹ️ **Phát hiện truy vấn Tiếng Anh/Hàn**: Đã tự động đổi sang hồ sơ du khách **{active_profile.get('flag', '🇺🇸')} {detected_nat}** để tối ưu hóa trọng số xếp hạng.")

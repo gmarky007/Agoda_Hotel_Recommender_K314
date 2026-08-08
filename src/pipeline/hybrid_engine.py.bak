@@ -185,9 +185,17 @@ def compute_text_relevance(search_query, hotel_name, hotel_desc):
 
 def calculate_hybrid_scores(df_hotels, df_aspects, svd_model, reviewer_profile, 
                             search_query="", cosine_sim=None, alpha=0.35):
-    """Calculate 4-factor hybrid recommendation scores with 6-scenario dynamic weighting.
+    """Calculate 4-factor hybrid recommendation scores.
     
-    Formula: S = w_cos*Cosine + w_svd*SVD + w_asp*Aspect + w_star*Star
+    Formula: S = 0.35*Cosine + 0.35*SVD + 0.15*Aspect + 0.15*Star
+    
+    Args:
+        df_hotels: DataFrame of hotels to score
+        df_aspects: DataFrame of NLP aspect ratings per hotel
+        svd_model: Surprise SVD model for collaborative filtering
+        reviewer_profile: Dict with reviewer_id, aspect_weights, target_star
+        search_query: User's search text for keyword relevance
+        cosine_sim: Pre-computed cosine similarity matrix (740x740) — reserved for future use
     """
     if df_hotels.empty:
         return df_hotels
@@ -197,9 +205,6 @@ def calculate_hybrid_scores(df_hotels, df_aspects, svd_model, reviewer_profile,
     # 1. Text Relevance / Cosine Score
     q_clean = clean_text(search_query) if search_query else ""
     q_no_star = re.sub(r'\d+\s*(?:sao|star)', '', q_clean).strip()
-    
-    # Extract query characteristics
-    has_star_constraint = extract_star_constraint(search_query) is not None
     is_pure_star_query = bool(q_clean and not q_no_star)
 
     if search_query and search_query.strip() and not is_pure_star_query:
@@ -215,33 +220,30 @@ def calculate_hybrid_scores(df_hotels, df_aspects, svd_model, reviewer_profile,
     else:
         res_df['Cosine_Score'] = 0.0
 
-    # 2. Collaborative Surprise SVD Score & Login State Verification
-    reviewer_id = str(reviewer_profile.get('reviewer_id', '')) if reviewer_profile else ''
-    is_logged_in = bool(reviewer_id and reviewer_id != '101' and reviewer_id != 'None')
-
-    if is_logged_in:
-        svd_scores = []
-        for _, row in res_df.iterrows():
-            h_id = str(row.get('Hotel_ID', ''))
-            if svd_model is not None and h_id:
-                try:
-                    est = svd_model.predict(reviewer_id, h_id).est
-                except Exception:
-                    est = 8.2
-            else:
-                est = 8.4
-            svd_scores.append(round(est, 2))
-            
-        res_df['SVD_Rating'] = svd_scores
-        svd_arr = np.array(svd_scores)
-        s_min, s_max = svd_arr.min(), svd_arr.max()
-        if s_max > s_min:
-            res_df['SVD_Norm'] = (svd_arr - s_min) / (s_max - s_min)
+    # 2. Collaborative Surprise SVD Score
+    reviewer_id = str(reviewer_profile.get('reviewer_id', '101')) if reviewer_profile else '101'
+    if reviewer_id == 'None' or not reviewer_id:
+        reviewer_id = '101'
+        
+    svd_scores = []
+    for _, row in res_df.iterrows():
+        h_id = str(row.get('Hotel_ID', ''))
+        if svd_model is not None and h_id:
+            try:
+                est = svd_model.predict(reviewer_id, h_id).est
+            except Exception:
+                est = 8.2
         else:
-            res_df['SVD_Norm'] = 0.5
+            est = 8.4
+        svd_scores.append(round(est, 2))
+        
+    res_df['SVD_Rating'] = svd_scores
+    svd_arr = np.array(svd_scores)
+    s_min, s_max = svd_arr.min(), svd_arr.max()
+    if s_max > s_min:
+        res_df['SVD_Norm'] = (svd_arr - s_min) / (s_max - s_min)
     else:
-        res_df['SVD_Rating'] = 0.0
-        res_df['SVD_Norm'] = 0.0
+        res_df['SVD_Norm'] = 0.5
     
     # 3. Demographic & Aspect Match Score
     aspect_weights = reviewer_profile.get('aspect_weights', {"Pool": 0.2, "Loc": 0.2, "Clean": 0.2, "Staff": 0.2, "Food": 0.2}) if reviewer_profile else {}
@@ -255,12 +257,11 @@ def calculate_hybrid_scores(df_hotels, df_aspects, svd_model, reviewer_profile,
     
     aspect_match_scores = []
     for _, row in res_df.iterrows():
-        base_score = float(row.get('Score_Num', 8.0))
-        r_clean = base_score if pd.isna(row.get('Rating_Clean')) else float(row.get('Rating_Clean', base_score))
-        r_loc = base_score if pd.isna(row.get('Rating_Loc')) else float(row.get('Rating_Loc', base_score))
-        r_pool = base_score if pd.isna(row.get('Rating_Pool')) else float(row.get('Rating_Pool', base_score))
-        r_staff = base_score if pd.isna(row.get('Rating_Staff')) else float(row.get('Rating_Staff', base_score))
-        r_food = base_score if pd.isna(row.get('Rating_Food')) else float(row.get('Rating_Food', base_score))
+        r_clean = 8.0 if pd.isna(row.get('Rating_Clean')) else float(row.get('Rating_Clean', 8.0))
+        r_loc = 8.0 if pd.isna(row.get('Rating_Loc')) else float(row.get('Rating_Loc', 8.0))
+        r_pool = 8.0 if pd.isna(row.get('Rating_Pool')) else float(row.get('Rating_Pool', 8.0))
+        r_staff = 8.0 if pd.isna(row.get('Rating_Staff')) else float(row.get('Rating_Staff', 8.0))
+        r_food = 8.0 if pd.isna(row.get('Rating_Food')) else float(row.get('Rating_Food', 8.0))
 
         score_sum = (
             aspect_weights.get('Clean', 0.2) * (r_clean / 10.0) +
@@ -273,9 +274,8 @@ def calculate_hybrid_scores(df_hotels, df_aspects, svd_model, reviewer_profile,
         
     res_df['Aspect_Match_Score'] = aspect_match_scores
     
-    # 4. Star Match Score - Use query star if specified, else profile target
-    q_star_val = extract_star_constraint(search_query)
-    target_star = q_star_val if q_star_val is not None else (reviewer_profile.get('target_star', 3.0) if reviewer_profile else 3.0)
+    # 4. Star Match Score
+    target_star = reviewer_profile.get('target_star', 3.0) if reviewer_profile else 3.0
     star_match_scores = []
     for _, row in res_df.iterrows():
         star_val = parse_star_numeric(row.get('Hotel_Rank', ''), row.get('Hotel_Description', ''), row.get('Estimated_Price', 0))
@@ -285,37 +285,13 @@ def calculate_hybrid_scores(df_hotels, df_aspects, svd_model, reviewer_profile,
         
     res_df['Star_Match_Score'] = star_match_scores
 
-    # 5. 6-Scenario Dynamic Weight Assignment Matrix
-    is_mode_2 = not bool(search_query.strip())
-
-    if not is_logged_in:
-        # GUEST MODE (SVD Disabled = 0%)
-        if is_mode_2:
-            # KB 7: Guest Mode 2 (Advanced Filter without query)
-            w_cos, w_svd, w_asp, w_star = 0.00, 0.00, 1.00, 0.00
-        elif is_pure_star_query:
-            # KB 3: Guest + Pure Star Query ("khách sạn 3 sao")
-            w_cos, w_svd, w_asp, w_star = 0.00, 0.00, 0.60, 0.40
-        elif has_star_constraint:
-            # KB 1: Guest + Descriptive with Star ("3 sao gần biển")
-            w_cos, w_svd, w_asp, w_star = 0.40, 0.00, 0.30, 0.30
-        else:
-            # KB 2: Guest + Descriptive NO Star ("gần biển có hồ bơi")
-            w_cos, w_svd, w_asp, w_star = 0.55, 0.00, 0.45, 0.00
+    # 5. Dynamic Weight Assignment
+    if is_pure_star_query:
+        # Pure star query -> Weight shifted heavily to Aspect (50%) and SVD (30%)
+        w_cos, w_svd, w_asp, w_star = 0.00, 0.30, 0.50, 0.20
     else:
-        # USER LOGGED-IN MODE (SVD Personalized Enabled = 15-30%)
-        if is_mode_2:
-            # KB 8: User Mode 2 (Advanced Filter without query)
-            w_cos, w_svd, w_asp, w_star = 0.00, 0.30, 0.70, 0.00
-        elif is_pure_star_query:
-            # KB 6: User + Pure Star Query ("khách sạn 3 sao")
-            w_cos, w_svd, w_asp, w_star = 0.00, 0.30, 0.50, 0.20
-        elif has_star_constraint:
-            # KB 4: User + Descriptive with Star ("3 sao gần biển")
-            w_cos, w_svd, w_asp, w_star = 0.25, 0.15, 0.30, 0.30
-        else:
-            # KB 5: User + Descriptive NO Star ("gần biển có hồ bơi")
-            w_cos, w_svd, w_asp, w_star = 0.40, 0.15, 0.45, 0.00
+        # Descriptive query or empty -> Standard hybrid weights
+        w_cos, w_svd, w_asp, w_star = 0.25, 0.15, 0.30, 0.30
 
     res_df['Hybrid_Score'] = (
         w_cos * res_df['Cosine_Score'] +
@@ -324,4 +300,4 @@ def calculate_hybrid_scores(df_hotels, df_aspects, svd_model, reviewer_profile,
         w_star * res_df['Star_Match_Score']
     ).round(4)
     
-    return res_df.sort_values(by=['Hybrid_Score', 'Score_Num'], ascending=[False, False])
+    return res_df.sort_values(by='Hybrid_Score', ascending=False)
