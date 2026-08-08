@@ -256,7 +256,7 @@ else:
             <div style="color:var(--agoda-primary-light); font-weight:700;">➡️</div>
             <div style="text-align:center; flex:1; min-width:90px; padding:6px; background:rgba(59,130,246,0.06); border-radius:8px; border:1px dashed var(--agoda-primary-light);">
                 <span style="font-size:1.2rem;">👨‍💻</span><br>
-                <span style="font-size:0.75rem; font-weight:700; color:var(--text-color);">6. Author Info</span>
+                <span style="font-size:0.75rem; font-weight:700; color:var(--text-color);">6. Project Info</span>
             </div>
         </div>
     </div>
@@ -268,7 +268,7 @@ else:
         "3️⃣ Data Preparation",
         "4️⃣ Modeling",
         "5️⃣ Evaluation",
-        "6️⃣ Info Tác giả"
+        "6️⃣ Project Information"
     ])
     with t1:
         m_bu.render()
