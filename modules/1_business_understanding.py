@@ -9,22 +9,7 @@ def render():
     </div>
     """, unsafe_allow_html=True)
 
-    # 1. Thông tin đồ án & Nhóm thực hiện
-    with st.container(border=True):
-        st.markdown("### 👨‍💻 Thông tin Đồ án Tốt nghiệp & Nhóm Thực Hiện")
-        col_info1, col_info2 = st.columns(2)
-        with col_info1:
-            st.markdown("""
-            *   **Tên đồ án**: Đồ Án Tốt Nghiệp - Agoda Hotel Recommender System (K314)
-            *   **Đơn vị đào tạo**: Trung tâm Tin học - Trường Đại học Khoa học Tự nhiên TP.HCM
-            """)
-        with col_info2:
-            st.markdown("""
-            *   **Thành viên thực hiện**: **NGUYỄN VĂN NAM & LÊ VĂN LƯU**
-            *   **Lớp học**: K314 — Máy Học & Khoa Học Dữ Liệu
-            """)
 
-    st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
 
     # 2. Mục tiêu chiến lược
     with st.container(border=True):

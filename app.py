@@ -173,12 +173,14 @@ m_du = importlib.import_module("modules.2_data_understanding")
 m_dp = importlib.import_module("modules.3_data_preparation")
 m_md = importlib.import_module("modules.4_modeling")
 m_ev = importlib.import_module("modules.5_evaluation")
+m_ai = importlib.import_module("modules.6_author_info")
 
 importlib.reload(m_bu)
 importlib.reload(m_du)
 importlib.reload(m_dp)
 importlib.reload(m_md)
 importlib.reload(m_ev)
+importlib.reload(m_ai)
 
 # ═══ SIDEBAR ═══
 
@@ -251,16 +253,22 @@ else:
                 <span style="font-size:1.2rem;">📊</span><br>
                 <span style="font-size:0.75rem; font-weight:700; color:var(--text-color);">5. Evaluation</span>
             </div>
+            <div style="color:var(--agoda-primary-light); font-weight:700;">➡️</div>
+            <div style="text-align:center; flex:1; min-width:90px; padding:6px; background:rgba(59,130,246,0.06); border-radius:8px; border:1px dashed var(--agoda-primary-light);">
+                <span style="font-size:1.2rem;">👨‍💻</span><br>
+                <span style="font-size:0.75rem; font-weight:700; color:var(--text-color);">6. Author Info</span>
+            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    t1, t2, t3, t4, t5 = st.tabs([
+    t1, t2, t3, t4, t5, t6 = st.tabs([
         "1️⃣ Business Understanding",
         "2️⃣ Data Understanding",
         "3️⃣ Data Preparation",
         "4️⃣ Modeling",
-        "5️⃣ Evaluation"
+        "5️⃣ Evaluation",
+        "6️⃣ Info Tác giả"
     ])
     with t1:
         m_bu.render()
@@ -272,4 +280,6 @@ else:
         m_md.render()
     with t5:
         m_ev.render()
+    with t6:
+        m_ai.render()
 
