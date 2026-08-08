@@ -46,6 +46,14 @@ domain_stopwords = {
 }
 stopwords.update(domain_stopwords)
 
+# Bỏ các từ mang nghĩa quan trọng ra khỏi stopwords (nếu vô tình có trong file vietnamese-stopwords.txt)
+important_words = {
+    "nhân_viên", "nhân", "viên", "tốt", "nice", "ok", "nha", 
+    "dịch_vụ", "giá", "sạch_sẽ", "tuyệt_vời", "thái_độ", "vị_trí", "khá", "sạch",
+    "ổn", "tuyệt", "kém", "tệ"
+}
+stopwords.difference_update(important_words)
+
 NEGATION_WORDS = {'không', 'chưa', 'chẳng', 'kém', 'thiếu', 'mất'}
 
 def join_negation(tokens):
@@ -249,6 +257,13 @@ def clean_and_tokenize(text):
     # 6. Ghép từ phủ định đi sát tính từ (Negation Merger)
     final_tokens = join_negation(cleaned_tokens)
     return " ".join(final_tokens)
+
+# Warmup mô hình NLP Underthesea ngay khi load module để tránh tình trạng treo app khi bấm nút chạy thử
+try:
+    _ = word_tokenize("khởi động", format="text")
+except Exception:
+    pass
+
         """, language="python")
 
     st.success("✅ Module Tiền xử lý NLP đã tích hợp thành công toàn bộ từ điển và Underthesea tokenizer!")

@@ -175,12 +175,13 @@ m_md = importlib.import_module("modules.4_modeling")
 m_ev = importlib.import_module("modules.5_evaluation")
 m_ai = importlib.import_module("modules.6_author_info")
 
-importlib.reload(m_bu)
-importlib.reload(m_du)
-importlib.reload(m_dp)
-importlib.reload(m_md)
-importlib.reload(m_ev)
-importlib.reload(m_ai)
+# Tắt reload để tối ưu hiệu suất (đặc biệt là cho mô hình NLP Underthesea)
+# importlib.reload(m_bu)
+# importlib.reload(m_du)
+# importlib.reload(m_dp)
+# importlib.reload(m_md)
+# importlib.reload(m_ev)
+# importlib.reload(m_ai)
 
 # ═══ SIDEBAR ═══
 
