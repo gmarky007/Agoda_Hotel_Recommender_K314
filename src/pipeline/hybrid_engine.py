@@ -83,25 +83,10 @@ AMENITY_MAP = {
     'trung tâm': r'trung tâm|center|central'
 }
 
-LOCATION_MAP = {
-    'lộc thọ': r'lộc thọ|loc tho',
-    'vĩnh phước': r'vĩnh phước|vinh phuoc',
-    'vĩnh hải': r'vĩnh hải|vinh hai',
-    'tân lập': r'tân lập|tan lap',
-    'vĩnh nguyên': r'vĩnh nguyên|vinh nguyen',
-    'phước hải': r'phước hải|phuoc hai',
-    'cam ranh': r'cam ranh',
-    'bãi dài': r'bãi dài|cam lâm|cam lam',
-    'trần phú': r'trần phú|tran phu',
-    'phạm văn đồng': r'phạm văn đồng|pham van dong',
-    'hùng vương': r'hùng vương|hung vuong',
-    'nguyễn thiện thuật': r'nguyễn thiện thuật|nguyen thien thuat'
-}
-
 def parse_nlp_query_constraints(df, query):
     """
     Stage 1: Hard Constraint Filter (AND logic)
-    Extracts star ratings, property types, locations, and amenities from natural language query
+    Extracts star ratings, property types, and amenities from natural language query
     and strictly filters the dataframe.
     """
     if not query or not query.strip():
@@ -116,19 +101,13 @@ def parse_nlp_query_constraints(df, query):
         # Tightened star range: e.g. for 3-star query, matches 2.8 to 3.4; for 5-star, 4.8 to 5.0
         res = res[(res['Star_Num'] >= q_star - 0.2) & (res['Star_Num'] <= q_star + 0.4)]
         
-    # 2. Location / District Constraint (OR if multiple specified, e.g. Trần Phú hoặc Lộc Thọ)
-    matched_locations = [pat for k, pat in LOCATION_MAP.items() if k in q_clean]
-    if matched_locations:
-        combined_loc_pat = '|'.join(set(matched_locations))
-        res = res[res['Hotel_Address'].str.contains(combined_loc_pat, case=False, na=False, regex=True) | res['Hotel_Name'].str.contains(combined_loc_pat, case=False, na=False, regex=True)]
-
-    # 3. Property Types (OR if multiple specified, e.g. villa hoặc homestay)
+    # 2. Property Types (OR if multiple specified, e.g. villa hoặc homestay)
     matched_types = [pat for k, pat in PROPERTY_TYPE_MAP.items() if k in q_clean]
     if matched_types:
         combined_type_pat = '|'.join(set(matched_types))
         res = res[res['Hotel_Description'].str.contains(combined_type_pat, case=False, na=False, regex=True) | res['Hotel_Name'].str.contains(combined_type_pat, case=False, na=False, regex=True)]
         
-    # 4. Mandatory Amenities (STRICT AND LOGIC)
+    # 3. Mandatory Amenities (STRICT AND LOGIC)
     matched_amenities = []
     for k, pat in AMENITY_MAP.items():
         if k in q_clean and pat not in matched_amenities:
@@ -205,10 +184,10 @@ def compute_text_relevance(search_query, hotel_name, hotel_desc):
 
 
 def calculate_hybrid_scores(df_hotels, df_aspects, svd_model, reviewer_profile, 
-                            search_query="", cosine_sim=None, alpha=0.35, model_mode="hybrid"):
+                            search_query="", cosine_sim=None, alpha=0.35):
     """Calculate 4-factor hybrid recommendation scores.
     
-    Formula: S = w_cos*Cosine + w_svd*SVD + w_asp*Aspect + w_star*Star
+    Formula: S = 0.35*Cosine + 0.35*SVD + 0.15*Aspect + 0.15*Star
     
     Args:
         df_hotels: DataFrame of hotels to score
@@ -217,7 +196,6 @@ def calculate_hybrid_scores(df_hotels, df_aspects, svd_model, reviewer_profile,
         reviewer_profile: Dict with reviewer_id, aspect_weights, target_star
         search_query: User's search text for keyword relevance
         cosine_sim: Pre-computed cosine similarity matrix (740x740) — reserved for future use
-        model_mode: 'hybrid' (default), 'content' (only NLP/Aspect), 'collaborative' (only SVD)
     """
     if df_hotels.empty:
         return df_hotels
@@ -308,21 +286,12 @@ def calculate_hybrid_scores(df_hotels, df_aspects, svd_model, reviewer_profile,
     res_df['Star_Match_Score'] = star_match_scores
 
     # 5. Dynamic Weight Assignment
-    if model_mode == "content":
-        # Pure Content-Based (NLP + Aspect + Star, Disable SVD)
-        if is_pure_star_query:
-            w_cos, w_svd, w_asp, w_star = 0.00, 0.00, 0.70, 0.30
-        else:
-            w_cos, w_svd, w_asp, w_star = 0.40, 0.00, 0.30, 0.30
-    elif model_mode == "collaborative":
-        # Pure Collaborative Filtering (Surprise SVD Only)
-        w_cos, w_svd, w_asp, w_star = 0.00, 1.00, 0.00, 0.00
+    if is_pure_star_query:
+        # Pure star query -> Weight shifted heavily to Aspect (50%) and SVD (30%)
+        w_cos, w_svd, w_asp, w_star = 0.00, 0.30, 0.50, 0.20
     else:
-        # 2-Stage Hybrid Engine (Default)
-        if is_pure_star_query:
-            w_cos, w_svd, w_asp, w_star = 0.00, 0.30, 0.50, 0.20
-        else:
-            w_cos, w_svd, w_asp, w_star = 0.25, 0.15, 0.30, 0.30
+        # Descriptive query or empty -> Standard hybrid weights
+        w_cos, w_svd, w_asp, w_star = 0.25, 0.15, 0.30, 0.30
 
     res_df['Hybrid_Score'] = (
         w_cos * res_df['Cosine_Score'] +

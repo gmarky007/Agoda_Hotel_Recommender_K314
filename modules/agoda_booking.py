@@ -335,35 +335,6 @@ def render():
                     st.session_state.search_mode = "mode2"
                     st.rerun()
 
-        # Model Selector Pills
-        st.markdown("<div style='margin-top:6px;'></div>", unsafe_allow_html=True)
-        col_m_label, col_m_pills = st.columns([1.2, 4.0], vertical_alignment="center")
-        with col_m_label:
-            st.markdown("<span style='font-size:0.83rem; font-weight:700; color:var(--text-color);'>🤖 Động cơ AI:</span>", unsafe_allow_html=True)
-        with col_m_pills:
-            model_mode_opts = {
-                "🏆 2-Stage Hybrid (Chính thức)": "hybrid",
-                "📝 Content-Based (Chỉ NLP/Aspect)": "content",
-                "👥 Collaborative Filtering (Chỉ SVD)": "collaborative"
-            }
-            if "selected_model_mode_key" not in st.session_state:
-                st.session_state.selected_model_mode_key = "🏆 2-Stage Hybrid (Chính thức)"
-            
-            sel_model_str = st.segmented_control(
-                "Động cơ AI:",
-                options=list(model_mode_opts.keys()),
-                default=st.session_state.selected_model_mode_key,
-                key="model_engine_segmented",
-                label_visibility="collapsed"
-            )
-            new_mode_key = sel_model_str or "🏆 2-Stage Hybrid (Chính thức)"
-            if new_mode_key != st.session_state.selected_model_mode_key:
-                st.session_state.selected_model_mode_key = new_mode_key
-                st.session_state.has_searched = False
-                st.rerun()
-
-            active_model_mode = model_mode_opts.get(st.session_state.selected_model_mode_key, "hybrid")
-
         filtered_df = df_hotels.copy()
         search_query = ""
         top_k = 6
@@ -371,42 +342,13 @@ def render():
         if st.session_state.search_mode == "mode1":
             c_in, c_k, c_btn = st.columns([5, 1.5, 1.5], vertical_alignment="bottom")
             with c_in:
-                st.markdown("<label style='font-size:0.85rem; font-weight:600; color:var(--text-color);'>Nhập nhu cầu du lịch bằng văn bản tự nhiên:</label>", unsafe_allow_html=True)
-                search_query = st.text_input(
-                    "Nhu cầu:",
-                    value=st.session_state.get('preset_query', ''),
-                    placeholder="Ví dụ: Khách sạn 3 sao gần trung tâm có buffet sáng, bể bơi...",
-                    label_visibility="collapsed",
-                    key="search_query_input"
-                )
+                st.markdown("<label style='font-size:0.85rem; font-weight:600; color:var(--text-color);'>Nhập nhu cầu du lịch:</label>", unsafe_allow_html=True)
+                search_query = st.text_input("Nhu cầu:", value="khách sạn 3 sao gần trung tâm có buffet sáng", label_visibility="collapsed", key="search_query_input")
             with c_k:
                 st.markdown("<label style='font-size:0.85rem; font-weight:600; color:var(--text-color);'>Số lượng:</label>", unsafe_allow_html=True)
                 top_k = st.selectbox("Số lượng hiển thị:", options=[3, 6, 9, 12], index=1, label_visibility="collapsed")
             with c_btn:
-                btn_m1_clicked = st.button("🔍 Tìm kiếm", type="primary", use_container_width=True, key="btn_m1_search")
-
-            # Quick search sample chips
-            st.markdown("<div style='margin-top:6px; font-size:0.8rem; color:var(--text-color); opacity:0.8;'>💡 <b>Mẫu tìm kiếm nhanh:</b></div>", unsafe_allow_html=True)
-            chip1, chip2, chip3 = st.columns(3)
-            with chip1:
-                if st.button("📍 KS 3 sao gần trung tâm buffet", use_container_width=True, key="chip1"):
-                    st.session_state.preset_query = "khách sạn 3 sao gần trung tâm có buffet sáng"
-                    st.session_state.has_searched = True
-                    st.rerun()
-            with chip2:
-                if st.button("🏊 Resort 5 sao bể bơi vô cực", use_container_width=True, key="chip2"):
-                    st.session_state.preset_query = "resort 5 sao có bể bơi vô cực view biển"
-                    st.session_state.has_searched = True
-                    st.rerun()
-            with chip3:
-                if st.button("🏖️ Căn hộ homestay gần biển", use_container_width=True, key="chip3"):
-                    st.session_state.preset_query = "căn hộ homestay gần biển giá rẻ"
-                    st.session_state.has_searched = True
-                    st.rerun()
-
-            if btn_m1_clicked:
-                st.session_state.has_searched = True
-                st.session_state.preset_query = search_query
+                st.button("🔍 Tìm kiếm", type="primary", use_container_width=True)
 
         else:
             fc1, fc2, fc3, fc4 = st.columns([1.1, 1.0, 1.1, 1.0], gap="small")
@@ -440,9 +382,7 @@ def render():
                 }
                 active_amenity_patterns = [pill_pattern_map[p] for p in (selected_pills or []) if p in pill_pattern_map]
 
-                btn_m2_clicked = st.button("🔍 Tìm kiếm", type="primary", use_container_width=True, key="btn_m2_search")
-                if btn_m2_clicked:
-                    st.session_state.has_searched = True
+                st.button("🔍 Tìm kiếm", type="primary", use_container_width=True, key="btn_m2_search")
 
             if selected_loc != "Tất cả khu vực":
                 filtered_df = filtered_df[filtered_df['Hotel_Address'].str.contains(selected_loc, case=False, na=False)]
@@ -473,26 +413,6 @@ def render():
                 filtered_df = filtered_df[filtered_df['Score_Num'] >= min_score]
             filtered_df = filtered_df[(filtered_df['Estimated_Price'] >= min_p) & (filtered_df['Estimated_Price'] <= max_p)]
 
-    # Check if user has triggered search
-    has_searched = st.session_state.get('has_searched', False)
-    if not has_searched and not search_query.strip():
-        st.markdown("<div style='margin-top:20px;'></div>", unsafe_allow_html=True)
-        with st.container(border=True):
-            st.markdown("""
-            <div style='text-align:center; padding: 25px 15px;'>
-                <h3 style='margin:0 0 10px 0; font-size:1.4rem; color:var(--agoda-primary); font-weight:800;'>🔍 VUI LÒNG NHẬP NHU CẦU VÀ BẤM "TÌM KIẾM"</h3>
-                <p style='font-size:0.92rem; color:var(--text-color); opacity:0.85; max-width:650px; margin:0 auto 15px auto;'>
-                    Hệ thống Đề xuất Agoda Nha Trang với động cơ <b>2-Stage Hybrid Engine</b> sẵn sàng phục vụ. Bạn hãy nhập tiêu chuẩn mong muốn hoặc nhấp chọn các mẫu gợi ý nhanh phía trên.
-                </p>
-                <div style='display:flex; justify-content:center; gap:20px; font-size:0.85rem; font-weight:600; opacity:0.9;'>
-                    <span>🛡️ Lọc Cứng AND-Logic NLP</span>
-                    <span>⚡ Trọng Số Năng Động (Dynamic Weighting)</span>
-                    <span>👤 Cá Nhân Hóa Theo Quốc Tịch</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-        return
-
     if is_logged_in:
         active_profile = _get_active_profile(real_personas)
     else:
@@ -501,22 +421,14 @@ def render():
         if detected_nat and detected_nat == st.session_state.selected_persona_key:
             st.info(f"ℹ️ **Phát hiện truy vấn Tiếng Anh/Hàn**: Đã tự động đổi sang hồ sơ du khách **{active_profile.get('flag', '🇺🇸')} {detected_nat}** để tối ưu hóa trọng số xếp hạng.")
 
-    # Cold-Start Warning banner when selecting Collaborative Filtering with descriptive text query
-    # Cold-Start Warning banner when selecting Collaborative Filtering with descriptive text query
-    if active_model_mode == "collaborative":
-        if search_query.strip():
-            st.warning("⚠️ **CẢNH BÁO COLD-START WARNING**: Thuật toán Lọc cộng tác (Surprise SVD) không có khả năng hiểu ngữ nghĩa văn bản hay lọc từ khóa mô tả. Điểm Cosine Text Similarity đã bị tắt ($0\%$) và Giai đoạn 1 Lọc cứng NLP đã bị bỏ qua. Hệ thống đang xếp hạng thuần theo lịch sử tương tác chung. Bạn nên chuyển sang **2-Stage Hybrid** hoặc **Content-Based** để có kết quả chính xác hơn.")
-        else:
-            st.warning("⚠️ **CHẾ ĐỘ COLLABORATIVE FILTERING**: Đã tắt hoàn toàn các bộ lọc NLP/Aspect. Kết quả dựa trên 100% điểm dự đoán SVD.")
-
-    # [STAGE 1] Hard Constraint Filter for Mode 1 (Bypassed for pure Collaborative SVD mode)
-    if st.session_state.search_mode == "mode1" and search_query.strip() and active_model_mode != "collaborative":
+    # [STAGE 1] Hard Constraint Filter for Mode 1
+    if st.session_state.search_mode == "mode1" and search_query.strip():
         filtered_df = parse_nlp_query_constraints(filtered_df, search_query)
 
     # [STAGE 2] Hybrid Soft Ranking
     hybrid_results = calculate_hybrid_scores(
         filtered_df, df_aspects, svd_model, active_profile,
-        search_query=search_query, cosine_sim=cosine_sim, model_mode=active_model_mode
+        search_query=search_query, cosine_sim=cosine_sim
     )
 
     if hybrid_results.empty:

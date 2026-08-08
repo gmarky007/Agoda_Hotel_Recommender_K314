@@ -110,13 +110,22 @@ def render():
         st.markdown("2️⃣ **Truy vấn hỗn hợp kèm từ khóa mô tả (Standard Query):**")
         st.latex(r"\text{Score}_{\text{Hybrid}} = 0.25 \cdot S_{\text{Cosine}} + 0.15 \cdot S_{\text{SVD}} + 0.30 \cdot S_{\text{Aspect}} + 0.30 \cdot S_{\text{Star}}")
 
-        st.markdown("#### 🧪 Phân Hệ Thử Nghiệm Mô Hình & Chứng Minh Lỗi Cold-Start On-App")
-        st.markdown("""
-        Giao diện Web B2C tích hợp bộ điều hướng **Động cơ AI** cho phép hội đồng thử nghiệm đối soát trực tiếp 3 mô hình:
-        - 🏆 **2-Stage Hybrid Engine**: Giải quyết triệt để Cold-Start nhờ sự kết hợp hài hòa giữa Lọc cứng NLP, Cosine, Aspect Score và SVD.
-        - 📝 **Content-Based Filtering**: Tắt hoàn toàn SVD (`SVD = 0%`) ➔ Giải pháp tối ưu khi người dùng mới hoặc khách sạn mới chưa có lịch sử đánh giá.
-        - 👥 **Collaborative Filtering**: Sử dụng $100\%$ SVD ➔ Hiển thị **Cảnh báo Cold-Start Warning** khi gõ truy vấn mô tả ngữ nghĩa để minh chứng sự bất lực của mô hình Lọc cộng tác đơn lẻ.
-        """)
+        # Draw a beautiful Seaborn bar chart for hybrid weights
+        st.markdown("#### 📊 Phân bổ trọng số của mô hình Hybrid (Truy Vấn Chuẩn vs Thuần Số Sao)")
+        fig, ax = plt.subplots(figsize=(10, 3.8))
+        df_weights = pd.DataFrame({
+            "Thành phần": ["Cosine Text", "SVD / ALS", "Aspect Match", "Star Match"],
+            "Truy Vấn Chuẩn (%)": [25, 15, 30, 30],
+            "Truy Vấn Thuần Sao (%)": [0, 30, 50, 20]
+        }).melt(id_vars="Thành phần", var_name="Kịch Bản", value_name="Trọng Số (%)")
+
+        sns.barplot(data=df_weights, x="Trọng Số (%)", y="Thành phần", hue="Kịch Bản", palette="coolwarm", ax=ax)
+        ax.set_title('Bộ Trọng Số Năng Động (Dynamic Weighting) Trong Mô Hình Hybrid', fontsize=11, fontweight='bold')
+        ax.set_xlabel('Trọng số (%)', fontsize=9)
+        ax.set_xlim(0, 60)
+        plt.tight_layout()
+        st.pyplot(fig)
+        plt.close(fig)
 
     st.markdown("<div style='margin-top:15px;'></div>", unsafe_allow_html=True)
 
