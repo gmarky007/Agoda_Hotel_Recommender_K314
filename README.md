@@ -15,10 +15,10 @@
 Đồ án được thực hiện theo chuẩn quy trình **CRISP-DM (Cross-Industry Standard Process for Data Mining)** gồm 6 bước toàn diện:
 1. **Business Understanding**: Xác định mục tiêu B2C (Gợi ý du khách) & B2B (Partner Insights).
 2. **Data Understanding**: Phân tích khám phá dữ liệu (EDA) 740 khách sạn & 80.314 bình luận.
-3. **Data Preparation**: Làm sạch văn bản NLP, xử lý từ điển bổ trợ & trích xuất 5 khía cạnh dịch vụ.
+3. **Data Preparation**: Làm sạch văn bản NLP, xử lý từ điển bổ trợ & trích xuất 5 khía cạnh dịch vụ. (Đã tối ưu hóa loại bỏ nhiễu Stopwords với các từ khóa quan trọng).
 4. **Modeling**: Huấn luyện Cosine, Surprise SVD / PySpark ALS & tích hợp 2-Stage Hybrid Recommender.
 5. **Evaluation**: Đánh giá định lượng offline (`Precision@5`, `Recall@5`, `RMSE`, `Coverage`).
-6. **Deployment**: Triển khai ứng dụng Web tương tác thực tế trên nền Streamlit (`app.py`).
+6. **Project Information / App UI**: Xây dựng & triển khai giao diện người dùng Web tương tác thực tế.
 
 ### 🏢 Mục tiêu 1: Đề xuất Cho Du Khách (B2C Recommender System)
 - **Bài toán**: Du khách gặp khó khăn khi lựa chọn giữa 700+ khách sạn tại Nha Trang do thông tin nhiễu và thiếu cơ chế gợi ý cá nhân hóa theo gu trải nghiệm / quốc tịch.
@@ -58,7 +58,21 @@ Mô hình **2-Stage Hybrid Recommender** được đánh giá định lượng t
 
 ---
 
-## 🗂️ 3. CẤU TRÚC THƯ MỤC DỰ ÁN (PROJECT STRUCTURE)
+## 👥 3. PHÂN CÔNG CÔNG VIỆC (TASK ALLOCATION)
+
+| TT | Giai đoạn / Hạng mục công việc (CRISP-DM & System) | Người thực hiện |
+|:---|:---|:---|
+| 1 | **Phần 1: Business Understanding** | Nguyễn Văn Nam & Lê Văn Lưu |
+| 2 | **Phần 2: Data Understanding** | Lê Văn Lưu |
+| 3 | **Phần 3: Data Preparation** | Lê Văn Lưu |
+| 4 | **Phần 4: Modeling (Xây dựng Hybrid Recommender System)** | Nguyễn Văn Nam |
+| 5 | **Phần 5: Evaluation (Đánh giá mô hình)** | Nguyễn Văn Nam |
+| 6 | **Phần 6: Xây dựng Giao diện (App UI / Insights)** | Lê Văn Lưu |
+| 7 | **Quản trị dự án: Triển khai GitHub & Cấu trúc lại mã nguồn** | Nguyễn Văn Nam |
+
+---
+
+## 🗂️ 4. CẤU TRÚC THƯ MỤC DỰ ÁN (PROJECT STRUCTURE)
 
 ```text
 Project1_Hybrid_Fix/
@@ -80,6 +94,7 @@ Project1_Hybrid_Fix/
 │   ├── 3_data_preparation.py                      # CRISP-DM Bước 3: Data Preparation
 │   ├── 4_modeling.py                              # CRISP-DM Bước 4: Modeling
 │   ├── 5_evaluation.py                            # CRISP-DM Bước 5: Evaluation
+│   ├── 6_author_info.py                           # Thông tin tác giả & Phân công công việc
 │   ├── agoda_booking.py                           # Giao diện Tìm & Đặt phòng (B2C)
 │   └── partner_insights.py                        # Báo cáo Dành cho Đối tác (B2B)
 └── src/                                            # Mã nguồn thuật toán & NLP Pipeline
@@ -93,7 +108,7 @@ Project1_Hybrid_Fix/
 
 ---
 
-## 💻 4. HƯỚNG DẪN CHẠY ỨNG DỤNG WEB (LOCAL EXECUTION)
+## 💻 5. HƯỚNG DẪN CHẠY ỨNG DỤNG WEB (LOCAL EXECUTION)
 
 ### Bước 1: Cài đặt các thư viện phụ thuộc
 ```bash
